@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Quartz;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,7 @@ namespace WebDataSave
             return "error";
         }
 
-        public static async Task Roads(IConfiguration configuration,int type)
+        public static async Task Roads(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList, int type)
         {
             var typeStr = type == 1 ? "上班路线" : "下班路线";
             var origin = type == 1 ? configuration["origin"] : configuration["destination"];
@@ -52,25 +53,48 @@ namespace WebDataSave
             {
                 await HttpHelper.HttpGet($"{configuration["barkUrl"]}错误/{resultObj.info}");
             }
+            var keyRoads = keyRoadsList.Value;
             foreach (var item in resultObj.route.paths)
             {
                 roads.Clear();
+                var isMatch = false;
                 foreach (var step in item.steps)
                 {
                     if (!string.IsNullOrWhiteSpace(step.road_name)
                         && step.road_name.IndexOf("入口") < 0
                         && step.road_name.IndexOf("出口") < 0)
                     {
-                        roads.Add(step.road_name);
+                        var keyRoadMatch = keyRoads.FirstOrDefault(a => a.name == step.road_name);
+                        //命中节点直接结束
+                        if (keyRoadMatch != null)
+                        {
+                            //若下班 则将配置文件中的路径顺序反转
+                            if (type == 2)
+                            {
+                                var showRoads = keyRoadMatch.roadShow.Split("->");
+                                showRoads=showRoads.Reverse().ToArray();
+                                tellMsg.Append(String.Join("->", showRoads));
+                            }
+                            else
+                            {
+                                tellMsg.Append(keyRoadMatch.roadShow);
+                            }
+                            tellMsg.Append($"-{Convert.ToInt32(Convert.ToInt32(item.cost.duration)) / 60}分\n");
+                            isMatch=true;
+                            continue;
+                        }
+                        else
+                        {
+                            roads.Add(step.road_name);
+                        }
                     }
                 }
-                if (roads.Count > 3)
+                if (!isMatch)
                 {
-                    var needDelCount = roads.Count / 2;
-                    roads = roads.Skip(needDelCount - 1).Take(3).ToList();
+                    tellMsg.Append(string.Join("-", roads));
+                    tellMsg.Append($"-{Convert.ToInt32(Convert.ToInt32(item.cost.duration)) / 60}分\n");
                 }
-                tellMsg.Append(string.Join("->", roads));
-                tellMsg.Append($"-{Convert.ToInt32(Convert.ToInt32(item.cost.duration)) / 60}分\n");
+               
             }
             await HttpHelper.HttpGet($"{configuration["barkUrl"]}{typeStr}/{tellMsg}");
         }
@@ -79,14 +103,18 @@ namespace WebDataSave
     public class WorkJob : IJob
     {
         public IConfiguration _configuration;
+        private readonly IOptions<List<KewRoad>> _keyRoadsList;
 
-        public WorkJob(IConfiguration configuration)
+
+        public WorkJob(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList)
         {
             this._configuration = configuration;
+            this._keyRoadsList = keyRoadsList;
+
         }
         public async Task Execute(IJobExecutionContext context)
         {
-            await HttpHelper.Roads(_configuration, 1);
+            await HttpHelper.Roads(_configuration, _keyRoadsList, 1);
         }
     }
 
@@ -94,15 +122,22 @@ namespace WebDataSave
     public class HomeJob : IJob
     {
         public IConfiguration _configuration;
+        private readonly IOptions<List<KewRoad>> _keyRoadsList;
 
-        public HomeJob(IConfiguration configuration)
+        public HomeJob(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList)
         {
             this._configuration = configuration;
+            this._keyRoadsList = keyRoadsList;
         }
         public async Task Execute(IJobExecutionContext context)
         {
-            await HttpHelper.Roads(_configuration, 2);
+            await HttpHelper.Roads(_configuration, _keyRoadsList, 2);
         }
+    }
+    public class KewRoad
+    {
+        public string name { get; set; }
+        public string roadShow { get; set; }
     }
     /// <summary>
     /// 高德返回的

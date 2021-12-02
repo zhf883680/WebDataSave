@@ -29,6 +29,7 @@ namespace WebDataSave
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddHttpClient();
+            services.Configure<List<KewRoad>>(Configuration.GetSection("keyRoads"));
             //Ìí¼ÓQuartz·þÎñ
             services.AddSingleton<IJobFactory, SingletonJobFactory>();
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
@@ -36,10 +37,20 @@ namespace WebDataSave
             services.AddSingleton<WorkJob>();
             services.AddSingleton(
                  new JobSchedule(jobType: typeof(WorkJob), cronExpression: "0 30 8 ? * 2,3,4,5,6"));
+           
+
+#if DEBUG
             services.AddSingleton<HomeJob>();
+            services.AddSingleton(
+                 new JobSchedule(jobType: typeof(HomeJob), cronExpression: "0/10 * * ? * 2,3,4,5,6"));
+#else
+ services.AddSingleton<HomeJob>();
             services.AddSingleton(
                  new JobSchedule(jobType: typeof(HomeJob), cronExpression: "0 0 18 ? * 2,3,4,5,6")
            );
+#endif
+
+
             services.AddHostedService<QuartzHostedService>();
             services.AddControllers();
         }
