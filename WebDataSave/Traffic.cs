@@ -14,6 +14,7 @@ namespace WebDataSave
 {
     public class HttpHelper
     {
+        public static List<HolidayDetails> holidays=new List<HolidayDetails>();
         public static async Task<string> HttpGet(string url, int timeout = 100)
         {
             try
@@ -38,11 +39,48 @@ namespace WebDataSave
             return "error";
         }
 
-        public static async Task Roads(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList, int type)
+        /// <summary>
+        /// 获取当年的节假日
+        /// </summary>
+        /// <param name="time"></param>
+        /// <returns></returns>
+        public static async Task<List<HolidayDetails>> GetHolidayByYear(int year)
         {
+            //没获取过或者缓存的时间不是今年时，重新获取
+
+            string path = $"http://timor.tech/api/holiday/year/{year}";
+            var result = await HttpHelper.HttpGet(path);
+            var resultObj = JsonSerializer.Deserialize<Holiday>(result);
+            return resultObj.holiday.Values.ToList();
+        }
+        public static async Task Roads(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList, IOptions<List<Origin>> originList, IOptions<List<Destination>> destinationList, int type, int user)
+        {
+            if (HttpHelper.holidays.Count == 0)
+            {
+                HttpHelper.holidays.AddRange(await HttpHelper.GetHolidayByYear(DateTime.Now.Year));
+                HttpHelper.holidays.AddRange(await HttpHelper.GetHolidayByYear(DateTime.Now.Year+1));
+            }
+            var nowDate = DateTime.Now.ToString("yyyy-MM-dd");
+            //节假日不执行
+            var todayInfo = HttpHelper.holidays.FirstOrDefault(a => a.date == nowDate);
+            if (todayInfo!=null)
+            {
+                if (todayInfo.holiday)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                //非列表中 则周末默认休息
+                if(DateTime.Now.DayOfWeek== DayOfWeek.Saturday || DateTime.Now.DayOfWeek == DayOfWeek.Sunday)
+                {
+                    return;
+                }
+            }
             var typeStr = type == 1 ? "上班路线" : "下班路线";
-            var origin = type == 1 ? configuration["origin"] : configuration["destination"];
-            var destination = type == 1 ? configuration["destination"] : configuration["origin"];
+            var origin = type == 1 ? originList.Value[user].origin : destinationList.Value[user].destination;
+            var destination = type == 1 ? destinationList.Value[user].destination : originList.Value[user].origin;
             //上班
             var roads = new List<string>();
             var tellMsg = new StringBuilder();
@@ -72,7 +110,7 @@ namespace WebDataSave
                             if (type == 2)
                             {
                                 var showRoads = keyRoadMatch.roadShow.Split("->");
-                                showRoads=showRoads.Reverse().ToArray();
+                                showRoads = showRoads.Reverse().ToArray();
                                 tellMsg.Append(String.Join("->", showRoads));
                             }
                             else
@@ -80,7 +118,7 @@ namespace WebDataSave
                                 tellMsg.Append(keyRoadMatch.roadShow);
                             }
                             tellMsg.Append($"-{Convert.ToInt32(Convert.ToInt32(item.cost.duration)) / 60}分\n");
-                            isMatch=true;
+                            isMatch = true;
                             continue;
                         }
                         else
@@ -94,7 +132,7 @@ namespace WebDataSave
                     tellMsg.Append(string.Join("-", roads));
                     tellMsg.Append($"-{Convert.ToInt32(Convert.ToInt32(item.cost.duration)) / 60}分\n");
                 }
-               
+
             }
             await HttpHelper.HttpGet($"{configuration["barkUrl"]}{typeStr}/{tellMsg}");
         }
@@ -104,40 +142,85 @@ namespace WebDataSave
     {
         public IConfiguration _configuration;
         private readonly IOptions<List<KewRoad>> _keyRoadsList;
+        private readonly IOptions<List<Origin>> _originList;
+        private readonly IOptions<List<Destination>> _destinationList;
 
 
-        public WorkJob(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList)
+        public WorkJob(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList, IOptions<List<Origin>> originList, IOptions<List<Destination>> destinationList)
         {
             this._configuration = configuration;
             this._keyRoadsList = keyRoadsList;
+            this._originList = originList;
+            this._destinationList = destinationList;
 
         }
         public async Task Execute(IJobExecutionContext context)
         {
-            await HttpHelper.Roads(_configuration, _keyRoadsList, 1);
+            await HttpHelper.Roads(_configuration, _keyRoadsList, _originList, _destinationList, 1, 0);
         }
     }
+    [DisallowConcurrentExecution]
+    public class ZDWWorkJob : IJob
+    {
+        public IConfiguration _configuration;
+        private readonly IOptions<List<KewRoad>> _keyRoadsList;
+        private readonly IOptions<List<Origin>> _originList;
+        private readonly IOptions<List<Destination>> _destinationList;
 
+
+        public ZDWWorkJob(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList, IOptions<List<Origin>> originList, IOptions<List<Destination>> destinationList)
+        {
+            this._configuration = configuration;
+            this._keyRoadsList = keyRoadsList;
+            this._originList = originList;
+            this._destinationList = destinationList;
+
+        }
+        public async Task Execute(IJobExecutionContext context)
+        {
+            if (_originList.Value.Count > 1)
+            {
+                await HttpHelper.Roads(_configuration, _keyRoadsList, _originList, _destinationList, 1, 1);
+            }
+        }
+    }
     [DisallowConcurrentExecution]
     public class HomeJob : IJob
     {
         public IConfiguration _configuration;
         private readonly IOptions<List<KewRoad>> _keyRoadsList;
+        private readonly IOptions<List<Origin>> _originList;
+        private readonly IOptions<List<Destination>> _destinationList;
 
-        public HomeJob(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList)
+
+        public HomeJob(IConfiguration configuration, IOptions<List<KewRoad>> keyRoadsList, IOptions<List<Origin>> originList, IOptions<List<Destination>> destinationList)
         {
             this._configuration = configuration;
             this._keyRoadsList = keyRoadsList;
+            this._originList = originList;
+            this._destinationList = destinationList;
+
         }
         public async Task Execute(IJobExecutionContext context)
         {
-            await HttpHelper.Roads(_configuration, _keyRoadsList, 2);
+            await HttpHelper.Roads(_configuration, _keyRoadsList, _originList, _destinationList, 2, 0);
         }
     }
+
+
+
     public class KewRoad
     {
         public string name { get; set; }
         public string roadShow { get; set; }
+    }
+    public class Origin
+    {
+        public string origin { get; set; }
+    }
+    public class Destination
+    {
+        public string destination { get; set; }
     }
     /// <summary>
     /// 高德返回的
@@ -193,5 +276,40 @@ namespace WebDataSave
         public string traffic_lights { get; set; }
     }
 
+
+    public class Holiday
+    {
+        public int code { get; set; }
+        public Dictionary<string, HolidayDetails> holiday { get; set; }
+    }
+    public class HolidayDetails
+    {
+        public bool holiday { get; set; }
+        public string date { get; set; }
+    }
+
+
+
+
+    //public class Rootobject
+    //{
+    //    public int code { get; set; }
+    //    public Holiday holiday { get; set; }
+    //}
+
+    //public class Holiday
+    //{
+    //    public _0101 _0101 { get; set; }
+    //}
+
+    //public class _0101
+    //{
+    //    public bool holiday { get; set; }
+    //    public string name { get; set; }
+    //    public int wage { get; set; }
+    //    public string date { get; set; }
+    //}
+
+   
 
 }

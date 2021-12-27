@@ -30,24 +30,29 @@ namespace WebDataSave
         {
             services.AddHttpClient();
             services.Configure<List<KewRoad>>(Configuration.GetSection("keyRoads"));
+            services.Configure<List<Origin>>(Configuration.GetSection("origin"));
+            services.Configure<List<Destination>>(Configuration.GetSection("destination"));
             //添加Quartz服务
             services.AddSingleton<IJobFactory, SingletonJobFactory>();
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
             //添加我们的Job
             services.AddSingleton<WorkJob>();
             services.AddSingleton(
-                 new JobSchedule(jobType: typeof(WorkJob), cronExpression: "0 30 8 ? * 2,3,4,5,6"));
-           
+                 new JobSchedule(jobType: typeof(WorkJob), cronExpression: "0 30 8  * * ?"));
+
 
 #if DEBUG
-            services.AddSingleton<HomeJob>();
+            services.AddSingleton<ZDWWorkJob>();
             services.AddSingleton(
-                 new JobSchedule(jobType: typeof(HomeJob), cronExpression: "0/10 * * ? * 2,3,4,5,6"));
+                 new JobSchedule(jobType: typeof(ZDWWorkJob), cronExpression: "0/10 * * * * ?"));
 #else
  services.AddSingleton<HomeJob>();
             services.AddSingleton(
-                 new JobSchedule(jobType: typeof(HomeJob), cronExpression: "0 0 18 ? * 2,3,4,5,6")
+                 new JobSchedule(jobType: typeof(HomeJob), cronExpression: "0 0 18  * * ?")
            );
+            services.AddSingleton<ZDWWorkJob>();
+            services.AddSingleton(
+                 new JobSchedule(jobType: typeof(ZDWWorkJob), cronExpression: "0 0 8 * * ?"));
 #endif
 
 
@@ -58,6 +63,7 @@ namespace WebDataSave
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
