@@ -32,19 +32,20 @@ namespace WebDataSave
             services.Configure<List<KewRoad>>(Configuration.GetSection("keyRoads"));
             services.Configure<List<Origin>>(Configuration.GetSection("origin"));
             services.Configure<List<Destination>>(Configuration.GetSection("destination"));
-            //Ìí¼ÓQuartz·þÎñ
+            //ï¿½ï¿½ï¿½Quartzï¿½ï¿½ï¿½ï¿½
             services.AddSingleton<IJobFactory, SingletonJobFactory>();
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
-            //Ìí¼ÓÎÒÃÇµÄJob
+            //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Çµï¿½Job
             services.AddSingleton<WorkJob>();
             services.AddSingleton(
                  new JobSchedule(jobType: typeof(WorkJob), cronExpression: "0 30 8  * * ?"));
 
-
-#if DEBUG
-            services.AddSingleton<ZDWWorkJob>();
+            services.AddSingleton<JDJob>();
             services.AddSingleton(
-                 new JobSchedule(jobType: typeof(ZDWWorkJob), cronExpression: "0/10 * * * * ?"));
+                new JobSchedule(jobType: typeof(JDJob), cronExpression: "0 0/2 * * * ?"));
+                //new JobSchedule(jobType: typeof(JDJob), cronExpression: "0/10 * * * * ?"));
+#if DEBUG
+
 #else
  services.AddSingleton<HomeJob>();
             services.AddSingleton(
