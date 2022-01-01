@@ -301,7 +301,7 @@ namespace WebDataSave
                 var msg = await HttpHelper.HttpGet(url);
                 msg = msg.Replace("jQuery3739321(", "").TrimEnd(')');
                 var thisResult = JsonSerializer.Deserialize<JsonRootDto>(msg);
-                if (thisResult != null && thisResult.stockInfo.stockDesc.Contains("无货"))
+                if (thisResult != null && !thisResult.stockInfo.stockDesc.Contains("无货"))
                 {
                     await HttpHelper.HttpGet($"{configuration["barkUrl"]}{item.Name}有货了！！");
                     item.LastSendTime=DateTime.Now.AddMinutes(10);//5分钟后在发
