@@ -261,31 +261,31 @@ namespace WebDataSave
 
         public static List<ShopInfo> shops = new List<ShopInfo>()
         {
-            new ShopInfo()
-            {
-                Id = "100017631158",
-                Name = "X-S10"
-            },
+            // new ShopInfo()
+            // {
+            //     Id = "100017631158",
+            //     Name = "X-S10"
+            // },
             new ShopInfo()
             {
                 Id = "100015253059",
                 Name = "银色X-T30-XC35"
             },
-            new ShopInfo()
-            {
-                Id = "100015253079",
-                Name = "银色X-T30-1545"
-            },
+            // new ShopInfo()
+            // {
+            //     Id = "100015253079",
+            //     Name = "银色X-T30-1545"
+            // },
             new ShopInfo()
             {
                 Id = "100015253061",
                 Name = "黑色X-T30-XC35"
             },
-            new ShopInfo()
-            {
-                Id = "100028021978",
-                Name = "黑色X-T30-1545"
-            },
+            // new ShopInfo()
+            // {
+            //     Id = "100028021978",
+            //     Name = "黑色X-T30-1545"
+            // },
         };
         public async static Task GetJdStockInfo(IConfiguration configuration)
         {
@@ -303,7 +303,7 @@ namespace WebDataSave
                 var thisResult = JsonSerializer.Deserialize<JsonRootDto>(msg);
                 if (thisResult != null && !thisResult.stockInfo.stockDesc.Contains("无货"))
                 {
-                    await HttpHelper.HttpGet($"{configuration["barkUrl"]}{item.Name}有货了！！");
+                    await HttpHelper.HttpGet($"{configuration["barkUrl"]}{item.Name}有货了！！?sound=birdsong");
                     item.LastSendTime=DateTime.Now.AddMinutes(10);//5分钟后在发
                     //item.LastSendTime=DateTime.Now.AddSeconds(20);
                 }
