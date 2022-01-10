@@ -261,11 +261,11 @@ namespace WebDataSave
 
         public static List<ShopInfo> shops = new List<ShopInfo>()
         {
-            // new ShopInfo()
-            // {
-            //     Id = "100017631158",
-            //     Name = "X-S10"
-            // },
+             new ShopInfo()
+             {
+                 Id = "100010091571",
+                 Name = "X-S10_1855"
+             },
             new ShopInfo()
             {
                 Id = "100015253059",
@@ -281,11 +281,11 @@ namespace WebDataSave
                 Id = "100015253061",
                 Name = "黑色X-T30-XC35"
             },
-            // new ShopInfo()
-            // {
-            //     Id = "100028021978",
-            //     Name = "黑色X-T30-1545"
-            // },
+             new ShopInfo()
+             {
+                 Id = "100011488872",
+                 Name = "XC35"
+             }
         };
         public async static Task GetJdStockInfo(IConfiguration configuration)
         {
