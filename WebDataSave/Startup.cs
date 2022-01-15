@@ -38,24 +38,23 @@ namespace WebDataSave
             //������ǵ�Job
             services.AddSingleton<WorkJob>();
             services.AddSingleton(
-                 new JobSchedule(jobType: typeof(WorkJob), cronExpression: "0 30 8  * * ?"));
+                 new JobSchedule(jobType: typeof(WorkJob), cronExpression: "0 32 8  * * ?"));
 
             services.AddSingleton<JDJob>();
             services.AddSingleton(
                 new JobSchedule(jobType: typeof(JDJob), cronExpression: "0 0/2 * * * ?"));
-                //new JobSchedule(jobType: typeof(JDJob), cronExpression: "0/10 * * * * ?"));
-#if DEBUG
 
-#else
- services.AddSingleton<HomeJob>();
+            services.AddSingleton<AutoWorkApply.AutoWorkApplyJob>();
             services.AddSingleton(
-                 new JobSchedule(jobType: typeof(HomeJob), cronExpression: "0 0 18  * * ?")
+                new JobSchedule(jobType: typeof(AutoWorkApply.AutoWorkApplyJob), cronExpression: "0 11 8 * * ?"));
+
+            services.AddSingleton<HomeJob>();
+            services.AddSingleton(
+                 new JobSchedule(jobType: typeof(HomeJob), cronExpression: "0 1 18  * * ?")
            );
-            services.AddSingleton<ZDWWorkJob>();
-            services.AddSingleton(
-                 new JobSchedule(jobType: typeof(ZDWWorkJob), cronExpression: "0 0 8 * * ?"));
-#endif
-
+            //services.AddSingleton<ZDWWorkJob>();
+            //services.AddSingleton(
+            //     new JobSchedule(jobType: typeof(ZDWWorkJob), cronExpression: "0 0 8 * * ?"));
 
             services.AddHostedService<QuartzHostedService>();
             services.AddControllers();

@@ -28,8 +28,7 @@ namespace WebDataSave
                 System.IO.File.WriteAllText("base.txt", (days + 190).ToString());
             }
             Console.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-           
-            
+            //Task.Run(async () =>  await AutoWorkApply.CheckWork());
             CreateHostBuilder(args).Build().Run();
         }
 
